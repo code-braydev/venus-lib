@@ -9,6 +9,7 @@ export { venusConfig } from "./utils/config";
 
 // Export primary network methods
 export { get } from "./methods/get";
+export { getRss } from "./methods/rss";
 export { send } from "./methods/send";
 export { remove } from "./methods/remove";
 export { update, updateOnly } from "./methods/update";

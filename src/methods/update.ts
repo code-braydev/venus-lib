@@ -1,5 +1,5 @@
 import { request } from "../core/request";
-import { VenusResponse } from "../core/types";
+import { VenusOptions, VenusResponse } from "../core/types";
 
 /**
  * Shared logic for update operations to ensure body consistency and detailed error capturing.
@@ -8,8 +8,8 @@ import { VenusResponse } from "../core/types";
 async function performUpdate<T>(
   path: string,
   method: "PUT" | "PATCH",
-  body: any,
-  headers?: HeadersInit,
+  body: unknown,
+  options: VenusOptions = {},
 ): Promise<VenusResponse<T>> {
   /**
    * Pre-flight Check:
@@ -21,40 +21,34 @@ async function performUpdate<T>(
       data: null,
       ok: false,
       status: 400,
+      errorCode: "INVALID_BODY",
       error: `Venus: ${method} requires a non-empty body.`,
     };
   }
 
-  try {
-    const response = await request<T>(path, {
-      method,
-      headers,
-      body: JSON.stringify(body),
-    });
+  const preparedBody =
+    typeof body === "string" || body instanceof FormData || body instanceof Blob
+      ? body
+      : JSON.stringify(body);
 
-    /**
-     * Server Feedback Extraction:
-     * Captures specific validation messages (e.g., "invalid email format")
-     * commonly sent by modern backends like NestJS or Express.
-     */
-    if (!response.ok) {
-      const serverMessage = (response.data as any)?.message || response.error;
-      return {
-        ...response,
-        error: `Venus: Update failed. ${serverMessage}`,
-      };
-    }
+  const response = await request<T>(path, {
+    ...options,
+    method,
+    body: preparedBody,
+  });
 
-    return response;
-  } catch (err: any) {
-    // Handle unexpected serialization or network-level interruptions
+  if (!response.ok) {
+    const serverMessage =
+      (response.data as { message?: string } | null)?.message || response.error;
     return {
-      data: null,
-      ok: false,
-      status: 500,
-      error: `Venus: Update processing error. ${err.message}`,
+      ...response,
+      error: serverMessage
+        ? `Venus: Update failed. ${serverMessage}`
+        : response.error,
     };
   }
+
+  return response;
 }
 
 /**
@@ -62,15 +56,15 @@ async function performUpdate<T>(
  * Use this when you want to overwrite an entire object with a complete new data set.
  * * @param path - The endpoint or absolute URL of the resource.
  * @param body - The complete data object to replace the resource.
- * @param headers - Optional custom headers (e.g., Auth tokens).
+ * @param options - Unified Venus options (headers, timeout, signal, params, parser, retry, hooks).
  * @returns A promise with the standardized VenusResponse.
  */
 export const update = async <T>(
   path: string,
-  body: any,
-  headers?: HeadersInit,
+  body: unknown,
+  options: VenusOptions = {},
 ): Promise<VenusResponse<T>> => {
-  return performUpdate<T>(path, "PUT", body, headers);
+  return performUpdate<T>(path, "PUT", body, options);
 };
 
 /**
@@ -78,13 +72,13 @@ export const update = async <T>(
  * Use this to update specific fields without affecting the rest of the object.
  * * @param path - The endpoint or absolute URL of the resource.
  * @param body - An object containing only the fields you wish to change.
- * @param headers - Optional custom headers (e.g., Auth tokens).
+ * @param options - Unified Venus options (headers, timeout, signal, params, parser, retry, hooks).
  * @returns A promise with the standardized VenusResponse.
  */
 export const updateOnly = async <T>(
   path: string,
-  body: any,
-  headers?: HeadersInit,
+  body: unknown,
+  options: VenusOptions = {},
 ): Promise<VenusResponse<T>> => {
-  return performUpdate<T>(path, "PATCH", body, headers);
+  return performUpdate<T>(path, "PATCH", body, options);
 };

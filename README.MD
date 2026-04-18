@@ -1,11 +1,20 @@
 # 🪐 Venus
 
-### 🚀 New in v1.2.0
+### 🚀 New in v2.0.0
 
 - **Smart Parsing**: Automatically detects if the response is JSON or Text (perfect for RSS/XML).
 - **Multi-Format Support**: Added support for `blob`, `formData`, and `arrayBuffer`.
 - **Query Params**: New `params` option to handle URL query strings safely.
 - **Enhanced DX**: Full JSDoc documentation for better IntelliSense in VS Code.
+
+### 🚀 v2.0.0 Improvements
+
+- **Unified API options** across all methods: `headers`, `timeout`, `signal`, `params`, `responseType`, `retry`.
+- **Richer error contract** with `errorCode` and optional `status`.
+- **Configurable retry policy** with backoff for transient failures (408, 429, 5xx).
+- **Lightweight hooks**: `beforeRequest` and `afterResponse`.
+- **RSS/Atom helper** with normalized feed parsing via `getRss`.
+- **RSS modes**: `strict` (default) and `lenient` for non-standard XML feeds.
 
 ### Networking, without the friction.
 
@@ -50,26 +59,49 @@ venusConfig.setBaseURL("https://api.yourdomain.com");
 Venus always returns a predictable response object — no `try/catch` required.
 
 ```ts
-import { get, send } from "@braydev/venus";
+import { get, getRss, send } from "@braydev/venus";
 
 // Fetching data
-const { data, ok, error } = await get<User>("/profile");
+const { data, ok, error, errorCode } = await get<User>("/profile", {
+  timeout: 8000,
+  params: { include: ["roles", "permissions"] },
+  paramsArrayFormat: "repeat",
+});
 
 if (ok) {
   console.log(data.name);
 } else {
-  console.error(error);
+  console.error(errorCode, error);
 }
 
 // Sending data
 const newUser = { name: "Brayan", role: "Developer" };
-const result = await send("/users", newUser);
+const result = await send("/users", newUser, {
+  timeout: 10000,
+  retry: {
+    attempts: 2,
+    backoffMs: 200,
+  },
+});
+
+// Fetching and parsing RSS/Atom feed
+const feedResult = await getRss("https://hnrss.org/frontpage", {
+  timeout: 8000,
+  retry: true,
+  rssMode: "strict",
+});
+
+if (feedResult.ok) {
+  console.log(feedResult.data.title);
+  console.log(feedResult.data.items[0]?.title);
+}
 
 // --- New in v1.2.0: Powerful Query Params & Smart Parsing ---
 
 // Effortless filtering with the 'params' option
 const { data: news } = await get("/latest", {
   params: { category: "tech", limit: 5 },
+  responseType: "auto",
 });
 
 /**
@@ -91,13 +123,148 @@ No boilerplate. No guesswork. Just clean network calls.
 
 ## 📦 API Methods
 
-| Method       | Function                              | Description                                  |
-| :----------- | :------------------------------------ | :------------------------------------------- |
-| `get`        | `get<T>(path, headers?, timeout?)`    | Fetch resources with a built-in timeout.     |
-| `send`       | `send<T>(path, body, headers?)`       | Create resources (POST) with validated body. |
-| `update`     | `update<T>(path, body, headers?)`     | Replace resources entirely (PUT).            |
-| `updateOnly` | `updateOnly<T>(path, body, headers?)` | Update resources partially (PATCH).          |
-| `remove`     | `remove<T>(path, headers?)`           | Delete resources with 204 handling.          |
+| Method       | Function                              | Description                                           |
+| :----------- | :------------------------------------ | :---------------------------------------------------- |
+| `get`        | `get<T>(path, options?)`              | Fetch resources with parser/timeout/retry controls.   |
+| `getRss`     | `getRss(path, options?)`              | Fetch and parse RSS/Atom feeds to normalized objects. |
+| `send`       | `send<T>(path, body, options?)`       | Create resources (POST) with validated body.          |
+| `update`     | `update<T>(path, body, options?)`     | Replace resources entirely (PUT).                     |
+| `updateOnly` | `updateOnly<T>(path, body, options?)` | Update resources partially (PATCH).                   |
+| `remove`     | `remove<T>(path, options?)`           | Delete resources with 204 handling.                   |
+
+### Response Contract
+
+```ts
+type VenusResponse<T> = {
+  data: T | null;
+  ok: boolean;
+  error: string | null;
+  status?: number;
+  errorCode:
+    | "HTTP_ERROR"
+    | "TIMEOUT"
+    | "ABORTED"
+    | "NETWORK_ERROR"
+    | "PARSING_ERROR"
+    | "INVALID_BODY"
+    | "RETRY_EXHAUSTED"
+    | "UNKNOWN_ERROR"
+    | null;
+};
+```
+
+### Common Options
+
+```ts
+{
+  headers?: HeadersInit;
+  timeout?: number;
+  signal?: AbortSignal;
+  params?: Record<string, unknown>;
+  paramsArrayFormat?: "repeat" | "comma" | "brackets" | "indices";
+  responseType?: "auto" | "json" | "text" | "blob" | "formData" | "arrayBuffer";
+  retry?: boolean | number | {
+    attempts?: number;
+    backoffMs?: number;
+    maxBackoffMs?: number;
+    retryOn?: number[];
+  };
+  hooks?: {
+    beforeRequest?: (ctx) => void | RequestInit | Promise<void | RequestInit>;
+    afterResponse?: (ctx) => void | Promise<void>;
+  };
+}
+```
+
+### RSS and Atom
+
+Venus can consume feeds without manual XML parsing:
+
+```ts
+import { getRss } from "@braydev/venus";
+
+const feed = await getRss("https://example.com/rss.xml", {
+  timeout: 7000,
+  rssMode: "strict", // strict | lenient
+});
+
+if (feed.ok) {
+  for (const item of feed.data.items) {
+    console.log(item.title, item.link);
+  }
+}
+```
+
+### RSS Modes
+
+- `strict` (default): fails if XML is not valid RSS/Atom structure.
+- `lenient`: does best-effort normalization for custom/non-standard XML feeds.
+
+```ts
+const strictFeed = await getRss("https://example.com/feed.xml", {
+  rssMode: "strict",
+});
+
+const lenientFeed = await getRss("https://example.com/custom-xml", {
+  rssMode: "lenient",
+});
+```
+
+### Frontend Example (SPA)
+
+```ts
+import { getRss } from "@braydev/venus";
+
+export async function loadNews() {
+  const result = await getRss("https://hnrss.org/frontpage", {
+    timeout: 6000,
+    retry: true,
+    rssMode: "strict",
+  });
+
+  if (!result.ok) {
+    throw new Error(result.error ?? "Feed error");
+  }
+
+  return result.data.items.slice(0, 10);
+}
+```
+
+### Backend Example (Node/SSR)
+
+```ts
+import { getRss } from "@braydev/venus";
+
+export async function fetchTechFeed() {
+  const result = await getRss("https://example.com/custom-feed", {
+    timeout: 8000,
+    retry: { attempts: 2, backoffMs: 200 },
+    rssMode: "lenient",
+  });
+
+  if (!result.ok) {
+    return { items: [], source: "fallback", error: result.error };
+  }
+
+  return {
+    source: result.data.title,
+    items: result.data.items.map((item) => ({
+      title: item.title,
+      link: item.link,
+      publishedAt: item.pubDate,
+    })),
+  };
+}
+```
+
+### Changelog
+
+A changelog is the file where you record what changed in each version (features, fixes, breaking changes).
+It helps users trust updates and migrate faster.
+
+- Convention: keep one section per version (`## 1.3.0`, `## 1.2.1`, etc.)
+- Include: Added, Changed, Fixed, Breaking (if any)
+- Follow SemVer (`major.minor.patch`)
 
 ### 🧪 Testing
 

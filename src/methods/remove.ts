@@ -1,19 +1,19 @@
 import { request } from "../core/request";
-import { VenusResponse } from "../core/types";
+import { VenusOptions, VenusResponse } from "../core/types";
 
 /**
  * Performs a DELETE request to remove a specific resource.
  * Optimized to handle '204 No Content' success states and server-side error extraction.
  * * @param path - The endpoint or absolute URL of the resource to be deleted.
- * @param headers - Optional custom headers for the request.
+ * @param options - Unified Venus options (headers, timeout, signal, params, parser, retry, hooks).
  */
 export const remove = async <T>(
   path: string,
-  headers?: HeadersInit,
+  options: VenusOptions = {},
 ): Promise<VenusResponse<T>> => {
   const response = await request<T>(path, {
+    ...options,
     method: "DELETE",
-    headers,
   });
 
   /**
@@ -25,7 +25,8 @@ export const remove = async <T>(
     return {
       ...response,
       ok: true,
-      data: null as any, // Standardize empty body for successful deletions
+      data: null,
+      errorCode: null,
       error: null,
     };
   }
@@ -36,11 +37,14 @@ export const remove = async <T>(
    * Fallback to the standard status text if no specific error body is provided.
    */
   if (!response.ok) {
-    const serverMessage = (response.data as any)?.message || response.error;
+    const serverMessage =
+      (response.data as { message?: string } | null)?.message || response.error;
 
     return {
       ...response,
-      error: `Venus: Delete operation failed. ${serverMessage}`,
+      error: serverMessage
+        ? `Venus: Delete operation failed. ${serverMessage}`
+        : response.error,
     };
   }
 
