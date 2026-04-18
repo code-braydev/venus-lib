@@ -2,68 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
-## 2.0.0 - 2026-04-18
+## [2.0.0] - 2026-04-18
 
 ### Added
 
-- Unified request API across get, send, update, updateOnly and remove.
-- Full timeout and AbortSignal support in the core request engine.
-- RSS helper via getRss with strict and lenient parsing modes.
-- Multi-format response parsing: json, text, blob, formData and arrayBuffer.
-- Typed response metadata with errorCode and optional status.
-- Retry policy with backoff for transient failures.
-- Query params serialization with support for arrays, objects and multiple formats.
-- Lightweight hooks for beforeRequest and afterResponse.
-- Frontend and backend usage examples for RSS consumption.
+- **Unified Request API:** Single interface for `get`, `send`, `update`, `updateOnly`, and `remove`.
+- **Advanced Engine:** Full support for `timeout` and `AbortSignal`.
+- **RSS/Atom Helper:** New `getRss` function with `strict` and `lenient` parsing modes.
+- **Multi-format Parsing:** Support for `json`, `text`, `blob`, `formData`, and `arrayBuffer`.
+- **Resilience:** Built-in retry policy with configurable backoff for transient failures.
+- **Smart Serialization:** Query params support for arrays, objects, and multiple formats.
+- **Lifecycle Hooks:** Added `beforeRequest` and `afterResponse` middlewares.
+- **Metadata:** Typed responses including `errorCode` and optional `status`.
 
 ### Changed
 
-- Request responses now use a normalized contract for success and error cases.
-- RSS parsing was separated into strict and lenient modes for better control.
-- Documentation was expanded to explain production usage and migration paths.
+- **Response Contract:** Normalized success and error handling across all methods.
+- **Documentation:** Major README update with production examples for Frontend and Backend.
 
 ### Fixed
 
-- Improved handling of 204/205 responses.
-- Improved normalization of RSS and Atom item links.
-- Better resilience for malformed or partial XML feeds in lenient mode.
+- **HTTP 204/205:** Improved handling of "No Content" responses.
+- **Feed Normalization:** Better resilience for malformed XML and Atom item links.
 
 ### Breaking Changes
 
-- HTTP methods now accept a unified options object instead of mixed positional arguments.
-- The response type now includes errorCode and an optional status field.
-- RSS helper uses rssMode to avoid conflicts with RequestInit.mode.
+- **Signature Change:** HTTP methods now accept a unified **options object** instead of mixed positional arguments.
+- **Response Structure:** Data is now wrapped in a contract that includes `errorCode`.
 
 ### Migration Notes
 
-- Replace old positional method signatures with the new options-based API.
-- Use rssMode: "strict" for standards-compliant feeds and rssMode: "lenient" for custom XML.
-- Update any response handling to read errorCode when branching on failures.
+- Replace old positional arguments: `client.get(url, headers)` -> `client.get({ url, headers })`.
 
-## 1.3.0 - 2026-04-18
+---
 
-### Added
+## [1.0.4] - 2026-02-14
 
-- New RSS helper: getRss(path, options) for RSS/Atom feeds.
-- RSS parsing modes:
-  - strict (default): requires valid RSS/Atom XML structure.
-  - lenient: best-effort parsing for non-standard XML feeds.
-- Typed RSS models: VenusRssFeed, VenusRssItem, VenusRssOptions.
-- Frontend and backend RSS usage examples in README.
+- **Fixed:** Minor internal bug fixes and connection stability improvements.
 
-### Changed
+## [1.0.2] - 2026-02-08
 
-- README documentation expanded with RSS modes and practical integration examples.
+- **Changed:** Documentation and README structure improvements.
 
-### Fixed
+## [1.0.1] - 2026-02-06
 
-- Improved feed normalization for Atom links and mixed XML content.
+- **Changed:** Initial README adjustments and project description.
 
-## 1.2.0 - 2026-04-18
+## [1.0.0] - 2026-02-05
 
-### Added
-
-- Unified request options across methods.
-- Rich error model with stable errorCode.
-- Configurable retry with backoff.
-- Smart parser control and robust query serialization.
+- **Initial Release:** Basic HTTPS wrapper for API requests.
