@@ -1,27 +1,25 @@
 {
   "name": "@braydev/venus",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A lightweight, type-safe networking library focused on clean and predictable API calls.",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
   "files": [
     "dist"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/code-braydev/venus.git"
-  },
-  "author": "code-braydev",
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --minify",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --minify",
     "dev": "tsup src/index.ts --watch --format cjs,esm",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",

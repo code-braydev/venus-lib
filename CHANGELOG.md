@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-04-30
+
+### Fixed:
+
+Resolved a "Named Export" resolution error in production environments where getRss was inaccessible to modern ESM-first frameworks like Astro 5.
+
+### Added:
+
+Full ESM support by implementing `"type": "module"` and a comprehensive exports map in package.json.
+
+### Changed:
+
+Standardized output extensions to .js for ESM and .cjs for CommonJS to guarantee cross-environment stability.
+
+### Improved:
+
+Optimized build workflow using tsup, incorporating the --clean flag to ensure a pristine dist directory and prevent artifact persistence.
+
 ## [2.0.0] - 2026-04-18
 
 ### Added

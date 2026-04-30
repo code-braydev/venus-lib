@@ -1,12 +1,12 @@
 import { XMLParser } from "fast-xml-parser";
-import { get } from "./get";
+import { get } from "./get.js";
 import {
   VenusRssMode,
   VenusRssOptions,
   VenusResponse,
   VenusRssFeed,
   VenusRssItem,
-} from "../core/types";
+} from "../core/types.js";
 
 type XmlNode = Record<string, unknown>;
 

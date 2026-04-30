@@ -1,5 +1,5 @@
-import { request } from "../core/request";
-import { VenusOptions, VenusResponse } from "../core/types";
+import { request } from "../core/request.js";
+import { VenusOptions, VenusResponse } from "../core/types.js";
 
 /**
  * Performs a GET request.
