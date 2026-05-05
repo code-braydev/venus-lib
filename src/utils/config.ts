@@ -1,4 +1,5 @@
 let globalBaseURL = "";
+let globalHeaders: Record<string, string> = {};
 
 /**
  * Venus Configuration Manager
@@ -19,4 +20,16 @@ export const venusConfig = {
    * Internal use only.
    */
   getBaseURL: () => globalBaseURL,
+  /**
+   * Set global headers to be applied to every request.
+   * Accepts a plain object of header entries.
+   */
+  setGlobalHeaders: (headers: Record<string, string>) => {
+    globalHeaders = { ...(headers || {}) };
+  },
+
+  /**
+   * Returns the current global headers as a plain object.
+   */
+  getGlobalHeaders: (): Record<string, string> => ({ ...globalHeaders }),
 };

@@ -1,6 +1,6 @@
 {
   "name": "@braydev/venus",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "A lightweight, type-safe networking library focused on clean and predictable API calls.",
   "type": "module",
   "main": "./dist/index.cjs",

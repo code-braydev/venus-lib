@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-05-04
+
+### Added:
+
+- **Global headers configuration**: `venusConfig.setGlobalHeaders(headers)` and `venusConfig.getGlobalHeaders()` allow setting headers applied to every request (per-request headers still override these). This simplifies auth and common metadata across your app.
+
+### Changed:
+
+- **Minor version bump** to reflect the new public API surface. Backwards compatible: existing behavior unchanged unless you opt into global headers.
+
+### Notes:
+
+- Per-request header keys take precedence over global headers when they collide.
+- Consider updating your application entry point to set auth headers once (e.g., Authorization, X-Trace-Id).
+
 ## [2.0.1] - 2026-04-30
 
 ### Fixed:

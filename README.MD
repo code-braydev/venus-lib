@@ -54,6 +54,24 @@ import { venusConfig } from "@braydev/venus";
 venusConfig.setBaseURL("https://api.yourdomain.com");
 ```
 
+### 1.1 Configure global headers
+
+You can set headers that apply to every request made with Venus (useful for auth tokens, tracing headers, etc.). Per-request headers override these global headers.
+
+```ts
+import { venusConfig } from "@braydev/venus";
+
+venusConfig.setBaseURL("https://api.yourdomain.com");
+
+venusConfig.setGlobalHeaders({
+  Authorization: "Bearer my-token",
+  "X-App-Version": "2.1.0",
+});
+
+// You can later read them back (returns a plain object)
+const current = venusConfig.getGlobalHeaders();
+```
+
 ### 2. Make your first request
 
 Venus always returns a predictable response object — no `try/catch` required.

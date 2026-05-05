@@ -5,8 +5,8 @@ import {
   VenusResponse,
   VenusResponseType,
   VenusRetryOptions,
-} from "./types";
-import { venusConfig } from "../utils/config";
+} from "./types.js";
+import { venusConfig } from "../utils/config.js";
 
 const DEFAULT_RETRY_STATUS = [408, 429, 500, 502, 503, 504];
 
@@ -200,7 +200,24 @@ function buildFetchOptions(options: VenusOptions): RequestBuildResult {
     ...rest
   } = options;
 
-  const headers = new Headers(rawHeaders);
+  // Merge global headers from venusConfig with per-request headers.
+  // Per-request headers override global headers when keys collide.
+  const headers = new Headers();
+  try {
+    const global = venusConfig.getGlobalHeaders?.() ?? {};
+    for (const [k, v] of Object.entries(global)) {
+      headers.set(k, v as string);
+    }
+  } catch (e) {
+    // If getGlobalHeaders is not present or fails, ignore and continue.
+  }
+
+  if (rawHeaders) {
+    const override = new Headers(rawHeaders as HeadersInit);
+    for (const [k, v] of override.entries()) {
+      headers.set(k, v);
+    }
+  }
   const hasBody = rest.body !== undefined && rest.body !== null;
 
   if (hasBody && !headers.has("Content-Type")) {
