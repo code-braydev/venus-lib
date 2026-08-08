@@ -146,6 +146,15 @@ export type VenusNormalizedError = Pick<
 >;
 
 /**
+ * Media content entry (Media RSS `media:content` or Atom enclosures).
+ */
+export interface VenusRssMediaContent {
+  url: string;
+  type?: string;
+  medium?: string;
+}
+
+/**
  * Parsed RSS/Atom item returned by Venus RSS helpers.
  */
 export interface VenusRssItem {
@@ -157,6 +166,19 @@ export interface VenusRssItem {
   guid?: string;
   author?: string;
   categories?: string[];
+  /** RSS `<enclosure>` or Atom `<link rel="enclosure">` attachment. */
+  enclosure?: {
+    url: string;
+    type?: string;
+    length?: number;
+  };
+  /** Media RSS attachments (`media:content` and `media:thumbnail`). */
+  media?: {
+    content?: VenusRssMediaContent[];
+    thumbnail?: { url: string }[];
+  };
+  /** Best-guess image URL for the item (enclosure → media → first <img> in HTML). */
+  image?: string;
 }
 
 /**

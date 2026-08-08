@@ -220,7 +220,16 @@ function buildFetchOptions(options: VenusOptions): RequestBuildResult {
   }
   const hasBody = rest.body !== undefined && rest.body !== null;
 
-  if (hasBody && !headers.has("Content-Type")) {
+  // Only default to JSON when the body is not a native fetch type.
+  // Setting application/json on FormData/Blob/URLSearchParams breaks
+  // multipart boundaries and binary uploads.
+  if (
+    hasBody &&
+    !(rest.body instanceof FormData) &&
+    !(rest.body instanceof Blob) &&
+    !(rest.body instanceof URLSearchParams) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -448,6 +457,19 @@ export async function request<T>(
       build.clearTimeout?.();
 
       if (!shouldRetry(retry, attempt + 1, parsed.status, parsed.errorCode)) {
+        if (parsed.ok) {
+          return parsed;
+        }
+
+        if (retry && attempt >= retry.attempts) {
+          return {
+            data: null,
+            ok: false,
+            status: parsed.status ?? 503,
+            errorCode: "RETRY_EXHAUSTED",
+            error: "Venus: Retry attempts exhausted.",
+          };
+        }
         return parsed;
       }
     } catch (err) {
@@ -525,37 +547,25 @@ export async function request<T>(
             networkResponse.errorCode,
           )
         ) {
+          if (retry && attempt >= retry.attempts) {
+            return {
+              data: null,
+              ok: false,
+              status: 503,
+              errorCode: "RETRY_EXHAUSTED",
+              error: "Venus: Retry attempts exhausted.",
+            };
+          }
           return networkResponse;
         }
       }
     }
 
-    if (!retry) {
-      return {
-        data: null,
-        ok: false,
-        status: 500,
-        errorCode: "UNKNOWN_ERROR",
-        error: "Venus: Unexpected request state.",
-      };
-    }
-
-    const backoff = Math.min(
-      retry.backoffMs * 2 ** attempt,
-      retry.maxBackoffMs,
-    );
+    const backoff = retry
+      ? Math.min(retry.backoffMs * 2 ** attempt, retry.maxBackoffMs)
+      : 0;
     if (backoff > 0) {
       await delay(backoff);
-    }
-
-    if (attempt + 1 > retry.attempts) {
-      return {
-        data: null,
-        ok: false,
-        status: 503,
-        errorCode: "RETRY_EXHAUSTED",
-        error: "Venus: Retry attempts exhausted.",
-      };
     }
   }
 }

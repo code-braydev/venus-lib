@@ -123,4 +123,173 @@ describe("Venus RSS helper", () => {
     expect(result.data?.title).toBe("Custom Feed");
     expect(result.data?.items[0].title).toBe("Item X");
   });
+
+  it("should extract the enclosure image from RSS items", async () => {
+    const rssXml = `<?xml version="1.0"?>
+      <rss version="2.0">
+        <channel>
+          <title>Imaged Feed</title>
+          <link>https://example.com</link>
+          <description>feed</description>
+          <item>
+            <title>Post with image</title>
+            <link>https://example.com/post</link>
+            <description>Some text</description>
+            <enclosure url="https://example.com/photo.jpg" type="image/jpeg" length="2048"/>
+          </item>
+        </channel>
+      </rss>`;
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(rssXml, {
+        status: 200,
+        headers: { "content-type": "application/rss+xml" },
+      }),
+    );
+
+    const result = await getRss("https://example.com/feed.xml");
+    const item = result.data?.items[0];
+
+    expect(result.ok).toBe(true);
+    expect(item?.enclosure).toEqual({
+      url: "https://example.com/photo.jpg",
+      type: "image/jpeg",
+      length: 2048,
+    });
+    expect(item?.image).toBe("https://example.com/photo.jpg");
+  });
+
+  it("should extract media:thumbnail and media:content from RSS items", async () => {
+    const rssXml = `<?xml version="1.0"?>
+      <rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+        <channel>
+          <title>Media Feed</title>
+          <link>https://example.com</link>
+          <description>feed</description>
+          <item>
+            <title>Media post</title>
+            <link>https://example.com/media</link>
+            <description>Media desc</description>
+            <media:thumbnail url="https://example.com/thumb.png"/>
+            <media:content url="https://example.com/full.jpg" type="image/jpeg" medium="image"/>
+          </item>
+        </channel>
+      </rss>`;
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(rssXml, {
+        status: 200,
+        headers: { "content-type": "application/rss+xml" },
+      }),
+    );
+
+    const result = await getRss("https://example.com/feed.xml");
+    const item = result.data?.items[0];
+
+    expect(result.ok).toBe(true);
+    expect(item?.media?.thumbnail).toEqual([
+      { url: "https://example.com/thumb.png" },
+    ]);
+    expect(item?.media?.content).toEqual([
+      {
+        url: "https://example.com/full.jpg",
+        type: "image/jpeg",
+        medium: "image",
+      },
+    ]);
+    expect(item?.image).toBe("https://example.com/thumb.png");
+  });
+
+  it("should extract the first <img> from item HTML as image", async () => {
+    const rssXml = `<?xml version="1.0"?>
+      <rss version="2.0">
+        <channel>
+          <title>Html Feed</title>
+          <link>https://example.com</link>
+          <description>feed</description>
+          <item>
+            <title>Html post</title>
+            <link>https://example.com/html</link>
+            <description><![CDATA[<p>Intro</p><img src="https://example.com/inline.png" alt="inline"/>]]></description>
+          </item>
+        </channel>
+      </rss>`;
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(rssXml, {
+        status: 200,
+        headers: { "content-type": "application/rss+xml" },
+      }),
+    );
+
+    const result = await getRss("https://example.com/feed.xml");
+    const item = result.data?.items[0];
+
+    expect(result.ok).toBe(true);
+    expect(item?.image).toBe("https://example.com/inline.png");
+  });
+
+  it("should extract an Atom enclosure link as item image", async () => {
+    const atomXml = `<?xml version="1.0" encoding="utf-8"?>
+      <feed xmlns="http://www.w3.org/2005/Atom">
+        <title>Venus Atom Images</title>
+        <updated>2026-04-18T12:00:00Z</updated>
+        <entry>
+          <title>Post with image</title>
+          <link href="https://venus.dev/post-b" rel="alternate" />
+          <link href="https://venus.dev/cover.png" rel="enclosure" type="image/png" />
+          <id>tag:venus.dev,2026:post-b</id>
+          <updated>2026-04-18T11:00:00Z</updated>
+          <summary>Atom content</summary>
+        </entry>
+      </feed>`;
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(atomXml, {
+        status: 200,
+        headers: { "content-type": "application/atom+xml" },
+      }),
+    );
+
+    const result = await getRss("https://example.com/atom.xml");
+    const item = result.data?.items[0];
+
+    expect(result.ok).toBe(true);
+    expect(item?.link).toBe("https://venus.dev/post-b");
+    expect(item?.enclosure).toEqual({
+      url: "https://venus.dev/cover.png",
+      type: "image/png",
+    });
+    expect(item?.image).toBe("https://venus.dev/cover.png");
+  });
+
+  it("should extract enclosure in lenient mode", async () => {
+    const xml = `
+      <customFeed>
+        <title>Custom Feed</title>
+        <entry>
+          <title>Item with image</title>
+          <link>https://custom.dev/x</link>
+          <enclosure url="https://custom.dev/pic.jpg" type="image/jpeg"/>
+          <summary>desc</summary>
+        </entry>
+      </customFeed>
+    `;
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(xml, {
+        status: 200,
+        headers: { "content-type": "application/xml" },
+      }),
+    );
+
+    const result = await getRss("https://example.com/custom.xml", {
+      rssMode: "lenient",
+    });
+    const item = result.data?.items[0];
+
+    expect(result.ok).toBe(true);
+    expect(item?.enclosure?.url).toBe("https://custom.dev/pic.jpg");
+    expect(item?.image).toBe("https://custom.dev/pic.jpg");
+  });
 });

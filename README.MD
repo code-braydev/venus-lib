@@ -1,5 +1,11 @@
 # 🪐 Venus
 
+### 🚀 New in v2.2.0
+
+- **RSS/Atom item images**: each feed item now exposes `enclosure`, `media`, and a ready-to-use `image` URL (from `<enclosure>`, Media RSS, Atom enclosures, or the first `<img>` in the item HTML).
+- **`RETRY_EXHAUSTED`**: when retries run out, you get a clear `errorCode` with the last HTTP status.
+- **Upload fixes**: `FormData`/`Blob` bodies no longer get a forced JSON `Content-Type` (multipart uploads work again).
+
 ### 🚀 New in v2.0.0
 
 - **Smart Parsing**: Automatically detects if the response is JSON or Text (perfect for RSS/XML).
@@ -65,7 +71,7 @@ venusConfig.setBaseURL("https://api.yourdomain.com");
 
 venusConfig.setGlobalHeaders({
   Authorization: "Bearer my-token",
-  "X-App-Version": "2.1.0",
+  "X-App-Version": "2.2.0",
 });
 
 // You can later read them back (returns a plain object)
@@ -212,6 +218,34 @@ if (feed.ok) {
   }
 }
 ```
+
+### Feed Item Fields
+
+Each `VenusRssItem` exposes, besides `title`/`link`/`description`/`content`, image-related helpers:
+
+```ts
+{
+  title: string;
+  link?: string;
+  description?: string; // raw HTML when the feed embeds markup
+  content?: string;
+  pubDate?: string;
+  guid?: string;
+  author?: string;
+  categories?: string[];
+  // RSS <enclosure> / Atom <link rel="enclosure">
+  enclosure?: { url: string; type?: string; length?: number };
+  // Media RSS attachments
+  media?: {
+    content?: { url: string; type?: string; medium?: string }[];
+    thumbnail?: { url: string }[];
+  };
+  // Best-guess image URL (enclosure → media → first <img> in HTML)
+  image?: string;
+}
+```
+
+Use `item.image` for a ready-to-use thumbnail, or inspect `enclosure`/`media` for the raw sources (covers podcasts, video and image enclosures).
 
 ### RSS Modes
 

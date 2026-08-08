@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-08-08
+
+### Added:
+
+- **RSS/Atom item images**: `VenusRssItem` now exposes `enclosure`, `media`, and `image` fields, extracting images from RSS `<enclosure>`, Media RSS (`media:thumbnail`/`media:content`), Atom `<link rel="enclosure">`, and the first `<img>` inside the item HTML. Use `item.image` for a ready-to-use thumbnail or inspect `enclosure`/`media` for raw sources.
+- **`RETRY_EXHAUSTED` error code**: when retries are exhausted, the final response reports `RETRY_EXHAUSTED` instead of a generic error, keeping the last HTTP status.
+
+### Fixed:
+
+- **Retry on last attempt**: a request that succeeded exactly on its final retry attempt was incorrectly reported as `RETRY_EXHAUSTED`; it now returns the successful response.
+- **Content-Type for uploads**: `send`/`update` no longer force `application/json` on `FormData`, `Blob`, or `URLSearchParams` bodies, which broke multipart boundaries and binary uploads.
+
+### Changed:
+
+- Test suite consolidated into shared suites (`core`, `methods`, `resilience`, `rss`) with new coverage for item images and retry edge cases.
+- README documents the new feed item fields under a "Feed Item Fields" section.
+
 ## [2.1.0] - 2026-05-04
 
 ### Added:
